@@ -72,11 +72,18 @@ class Companies extends BasePackage
 
     public function updateCompany($data)
     {
+        $company = $this->getCompany((int) $data['id']);
+
+        if (!$this->removeAddresses($data, $company)) {
+            $this->addResponse('Cannot remove address as it is being used!', 1);
+
+            return false;
+        }
+
         if ($this->update($data)) {
             $company = $this->packagesData->last;
 
             $this->addAddresses($data, $company);
-            $this->removeAddresses($data, $company);
 
             $this->addResponse('Company updated');
 
@@ -88,7 +95,7 @@ class Companies extends BasePackage
 
     public function removeCompany($data)
     {
-        $company = $this->getCompany($data['id']);
+        $company = $this->getCompany((int) $data['id']);
 
         //Archive Company and do not delete it!
         $company['archived'] = true;
@@ -151,6 +158,8 @@ class Companies extends BasePackage
                 }
             }
         }
+
+        return true;
     }
 
     public function getCompanyByReference($reference, $businessType = 'customers')
