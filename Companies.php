@@ -38,7 +38,7 @@ class Companies extends BasePackage
             }
         } else {
             $this->setFFRelations(true);
-            $this->setFFRelationsConditions(['addresses' => ['package_name', '=', 'Companies'], 'contacts' => ['package_name', '=', 'Companies']]);
+            $this->setFFRelationsConditions(['addresses' => ['package_name', '=', 'TMSCompanies'], 'contacts' => ['package_name', '=', 'TMSCompanies']]);
 
             $company = $this->getFirst('id', $companyId, false, true, null, [], true);
 
@@ -60,7 +60,10 @@ class Companies extends BasePackage
         if ($this->add($data)) {
             $company = $this->packagesData->last;
 
-            $this->addAddresses($data, $company);
+            $this->updateAddresses($data, $company);
+            $this->updateContacts($data, $company);
+
+            $this->addActivityLog($company);
 
             $this->addResponse('Company added');
 
@@ -74,16 +77,13 @@ class Companies extends BasePackage
     {
         $company = $this->getCompany((int) $data['id']);
 
-        if (!$this->removeAddresses($data, $company)) {
-            $this->addResponse('Cannot remove address as it is being used!', 1);
-
-            return false;
-        }
-
         if ($this->update($data)) {
             $company = $this->packagesData->last;
 
-            $this->addAddresses($data, $company);
+            $this->updateAddresses($data, $company);
+            $this->updateContacts($data, $company);
+
+            $this->addActivityLog($data, $company);
 
             $this->addResponse('Company updated');
 
@@ -111,35 +111,7 @@ class Companies extends BasePackage
         return false;
     }
 
-    protected function addAddresses($data, $company)
-    {
-        if (isset($data['address_ids'])) {
-            if (is_string($data['address_ids'])) {
-                $data['address_ids'] = $this->helper->decode($data['address_ids'], true);
-            }
-
-            if (count($data['address_ids']) > 0) {
-                foreach ($data['address_ids'] as $addressId => $address) {
-                    if (isset($address['new']) && $address['new'] == 1) {
-                        $address['package_name'] = 'Companies';
-                        $address['package_row_id'] = $company['id'];
-
-                        $this->basepackages->addressbook->addAddress($address);
-                    } else {
-                        $dbAddress = $this->basepackages->addressbook->getById($addressId);
-
-                        if ($dbAddress) {
-                            $dbAddress = array_merge($dbAddress, $data['address_ids'][$addressId]);
-                        }
-
-                        $this->basepackages->addressbook->updateAddress($dbAddress);
-                    }
-                }
-            }
-        }
-    }
-
-    protected function removeAddresses($data, $company)
+    protected function updateAddresses($data, $company)
     {
         if (isset($data['delete_address_ids'])) {
             if (is_string($data['delete_address_ids'])) {
@@ -150,10 +122,91 @@ class Companies extends BasePackage
                 foreach ($data['delete_address_ids'] as $addressId) {
                     $dbAddress = $this->basepackages->addressbook->getById($addressId);
 
-                    //Check if address is being used by invoice and other locations!!!!
-                    //
                     if ($dbAddress) {
                         $this->basepackages->addressbook->removeAddress($dbAddress);
+                    }
+                }
+            }
+        }
+
+        if (isset($data['address_ids'])) {
+            if (is_string($data['address_ids'])) {
+                $data['address_ids'] = $this->helper->decode($data['address_ids'], true);
+            }
+
+            if (count($data['address_ids']) > 0) {
+                foreach ($data['address_ids'] as $addressId => $address) {
+                    if (isset($address['new']) && $address['new'] == 1) {
+                        $address['package_name'] = 'TMSCompanies';
+                        $address['package_row_id'] = $company['id'];
+
+                        $this->basepackages->addressbook->addAddress($address);
+                    } else {
+                        $dbAddress = $this->basepackages->addressbook->getById($addressId);
+
+                        if ($dbAddress) {
+                            $dbAddress = array_merge($dbAddress, $data['address_ids'][$addressId]);
+
+                            $this->basepackages->addressbook->updateAddress($dbAddress);
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    protected function updateContacts($data, $company)
+    {
+        if (isset($data['contact_ids'])) {
+            if (is_string($data['contact_ids'])) {
+                $data['contact_ids'] = $this->helper->decode($data['contact_ids'], true);
+            }
+
+            if (count($data['contact_ids']) > 0) {
+                foreach ($data['contact_ids'] as $contactId => $contact) {
+                    if (isset($contact['new']) && $contact['new'] == 1) {
+                        $contact['package_name'] = 'TMSCompanies';
+                        $contact['package_row_id'] = $company['id'];
+
+                        if (isset($contact['first_name']) && isset($contact['last_name'])) {
+                            $contact['full_name'] = $contact['first_name'] . ' ' . $contact['last_name'];
+                        } else {
+                            $contact['full_name'] = $contact['first_name'];
+                        }
+
+                        $this->basepackages->contactbook->addContact($contact);
+                    } else {
+                        $dbContact = $this->basepackages->contactbook->getById($contactId);
+
+                        if ($dbContact) {
+                            $dbContact = array_merge($dbContact, $data['contact_ids'][$contactId]);
+
+                            if (isset($dbContact['first_name']) && isset($dbContact['last_name'])) {
+                                $dbContact['full_name'] = $dbContact['first_name'] . ' ' . $dbContact['last_name'];
+                            } else {
+                                $dbContact['full_name'] = $dbContact['first_name'];
+                            }
+
+                            $this->basepackages->contactbook->updateContact($dbContact);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isset($data['delete_contact_ids'])) {
+            if (is_string($data['delete_contact_ids'])) {
+                $data['delete_contact_ids'] = $this->helper->decode($data['delete_contact_ids'], true);
+            }
+
+            if (count($data['delete_contact_ids']) > 0) {
+                foreach ($data['delete_contact_ids'] as $contactId) {
+                    $dbContact = $this->basepackages->contactbook->getById($contactId);
+
+                    if ($dbContact) {
+                        $this->basepackages->contactbook->removeContact($dbContact);
                     }
                 }
             }
