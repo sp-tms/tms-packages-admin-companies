@@ -65,7 +65,7 @@ class AppsTmsCompanies extends BaseModel
                 'params'                => [
                     'conditions'        => 'package_name = :package_name:',
                     'bind'              => [
-                        'package_name'  => 'TMSContacts'
+                        'package_name'  => 'Companies'
                     ]
                 ]
             ]
@@ -80,7 +80,7 @@ class AppsTmsCompanies extends BaseModel
                 'params'                => [
                     'conditions'        => 'package_name = :package_name:',
                     'bind'              => [
-                        'package_name'  => 'TMSCompanies'
+                        'package_name'  => 'Companies'
                     ]
                 ]
             ]

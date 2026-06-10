@@ -38,7 +38,7 @@ class Companies extends BasePackage
             }
         } else {
             $this->setFFRelations(true);
-            $this->setFFRelationsConditions(['addresses' => ['package_name', '=', 'TMSCompanies'], 'contacts' => ['package_name', '=', 'TMSCompanies']]);
+            $this->setFFRelationsConditions(['addresses' => ['package_name', '=', 'Companies'], 'contacts' => ['package_name', '=', 'Companies']]);
 
             $company = $this->getFirst('id', $companyId, false, true, null, [], true);
 
@@ -137,7 +137,7 @@ class Companies extends BasePackage
             if (count($data['address_ids']) > 0) {
                 foreach ($data['address_ids'] as $addressId => $address) {
                     if (isset($address['new']) && $address['new'] == 1) {
-                        $address['package_name'] = 'TMSCompanies';
+                        $address['package_name'] = 'Companies';
                         $address['package_row_id'] = $company['id'];
 
                         $this->basepackages->addressbook->addAddress($address);
@@ -167,7 +167,7 @@ class Companies extends BasePackage
             if (count($data['contact_ids']) > 0) {
                 foreach ($data['contact_ids'] as $contactId => $contact) {
                     if (isset($contact['new']) && $contact['new'] == 1) {
-                        $contact['package_name'] = 'TMSCompanies';
+                        $contact['package_name'] = 'Companies';
                         $contact['package_row_id'] = $company['id'];
 
                         if (isset($contact['first_name']) && isset($contact['last_name'])) {
@@ -182,6 +182,9 @@ class Companies extends BasePackage
 
                         if ($dbContact) {
                             $dbContact = array_merge($dbContact, $data['contact_ids'][$contactId]);
+
+                            $dbContact['package_name'] = 'Companies';
+                            $dbContact['package_row_id'] = $company['id'];
 
                             if (isset($dbContact['first_name']) && isset($dbContact['last_name'])) {
                                 $dbContact['full_name'] = $dbContact['first_name'] . ' ' . $dbContact['last_name'];
