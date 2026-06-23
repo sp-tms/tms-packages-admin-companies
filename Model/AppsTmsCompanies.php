@@ -2,6 +2,7 @@
 
 namespace Apps\Tms\Packages\Companies\Model;
 
+use Apps\Tms\Packages\Companies\Companies;
 use System\Base\BaseModel;
 use System\Base\Providers\BasepackagesServiceProvider\Packages\Model\BasepackagesAddressBook;
 use System\Base\Providers\BasepackagesServiceProvider\Packages\Model\BasepackagesContactBook;
@@ -63,9 +64,9 @@ class AppsTmsCompanies extends BaseModel
             [
                 'alias'                 => 'contacts',
                 'params'                => [
-                    'conditions'        => 'package_name = :package_name:',
+                    'conditions'        => 'package_class = :package_class:',
                     'bind'              => [
-                        'package_name'  => 'Companies'
+                        'package_class'  => str_replace('\\', '_', Companies::class)
                     ]
                 ]
             ]
@@ -78,9 +79,9 @@ class AppsTmsCompanies extends BaseModel
             [
                 'alias'                 => 'addresses',
                 'params'                => [
-                    'conditions'        => 'package_name = :package_name:',
+                    'conditions'        => 'package_class = :package_class:',
                     'bind'              => [
-                        'package_name'  => 'Companies'
+                        'package_class'  => str_replace('\\', '_', Companies::class)
                     ]
                 ]
             ]

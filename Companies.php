@@ -2,6 +2,7 @@
 
 namespace Apps\Tms\Packages\Companies;
 
+use Apps\Tms\Packages\Companies\Companies;
 use Apps\Tms\Packages\Companies\Model\AppsTmsCompanies;
 use System\Base\BasePackage;
 
@@ -38,7 +39,12 @@ class Companies extends BasePackage
             }
         } else {
             $this->setFFRelations(true);
-            $this->setFFRelationsConditions(['addresses' => ['package_name', '=', 'Companies'], 'contacts' => ['package_name', '=', 'Companies']]);
+            $this->setFFRelationsConditions(
+                    [
+                        'addresses' => ['package_class', '=', str_replace('\\', '_', Companies::class)],
+                        'contacts' => ['package_class', '=', str_replace('\\', '_', Companies::class)]
+                    ]
+            );
 
             $company = $this->getFirst('id', $companyId, false, true, null, [], true);
 
@@ -65,6 +71,10 @@ class Companies extends BasePackage
 
             $this->addActivityLog($company);
 
+            if ($company['logo'] !== '') {
+                $this->basepackages->storages->changeOrphanStatus(newUUID : $company['logo'], status: 0);
+            }
+
             $this->addResponse('Company added');
 
             return true;
@@ -75,7 +85,7 @@ class Companies extends BasePackage
 
     public function updateCompany($data)
     {
-        $company = $this->getCompany((int) $data['id']);
+        $companyArr = $this->getCompany((int) $data['id']);
 
         if ($this->update($data)) {
             $company = $this->packagesData->last;
@@ -83,7 +93,11 @@ class Companies extends BasePackage
             $this->updateAddresses($data, $company);
             $this->updateContacts($data, $company);
 
-            $this->addActivityLog($data, $company);
+            $this->addActivityLog($data, $companyArr);
+
+            if ($company['logo'] !== '') {
+                $this->basepackages->storages->changeOrphanStatus(newUUID : $company['logo'], status: 0);
+            }
 
             $this->addResponse('Company updated');
 
@@ -137,7 +151,7 @@ class Companies extends BasePackage
             if (count($data['address_ids']) > 0) {
                 foreach ($data['address_ids'] as $addressId => $address) {
                     if (isset($address['new']) && $address['new'] == 1) {
-                        $address['package_name'] = 'Companies';
+                        $address['package_class'] = str_replace('\\', '_', Companies::class);
                         $address['package_row_id'] = $company['id'];
 
                         $this->basepackages->addressbook->addAddress($address);
@@ -146,6 +160,9 @@ class Companies extends BasePackage
 
                         if ($dbAddress) {
                             $dbAddress = array_merge($dbAddress, $data['address_ids'][$addressId]);
+
+                            $dbAddress['package_class'] = str_replace('\\', '_', Companies::class);
+                            $dbAddress['package_row_id'] = $company['id'];
 
                             $this->basepackages->addressbook->updateAddress($dbAddress);
                         }
@@ -167,7 +184,7 @@ class Companies extends BasePackage
             if (count($data['contact_ids']) > 0) {
                 foreach ($data['contact_ids'] as $contactId => $contact) {
                     if (isset($contact['new']) && $contact['new'] == 1) {
-                        $contact['package_name'] = 'Companies';
+                        $contact['package_class'] = str_replace('\\', '_', Companies::class);
                         $contact['package_row_id'] = $company['id'];
 
                         if (isset($contact['first_name']) && isset($contact['last_name'])) {
@@ -177,13 +194,26 @@ class Companies extends BasePackage
                         }
 
                         $this->basepackages->contactbook->addContact($contact);
+
+                        if ($contact['portrait'] !== '') {
+                            $this->basepackages->storages->changeOrphanStatus(newUUID : $contact['portrait'], status: 0);
+                        }
                     } else {
                         $dbContact = $this->basepackages->contactbook->getById($contactId);
 
                         if ($dbContact) {
+                            $oldPortrait = null;
+                            $newPortrait = null;
+                            if ($dbContact['portrait'] !== '') {
+                                $oldPortrait = $dbContact['portrait'];
+                            }
+                            if ($data['contact_ids'][$contactId]['portrait'] !== '') {
+                                $newPortrait = $data['contact_ids'][$contactId]['portrait'];
+                            }
+
                             $dbContact = array_merge($dbContact, $data['contact_ids'][$contactId]);
 
-                            $dbContact['package_name'] = 'Companies';
+                            $dbContact['package_class'] = str_replace('\\', '_', Companies::class);
                             $dbContact['package_row_id'] = $company['id'];
 
                             if (isset($dbContact['first_name']) && isset($dbContact['last_name'])) {
@@ -193,6 +223,10 @@ class Companies extends BasePackage
                             }
 
                             $this->basepackages->contactbook->updateContact($dbContact);
+
+                            if ($data['contact_ids'][$contactId]['portrait'] !== '') {
+                                $this->basepackages->storages->changeOrphanStatus(newUUID : $newPortrait, oldUUID: $oldPortrait, status: 0);
+                            }
                         }
                     }
                 }
@@ -210,6 +244,10 @@ class Companies extends BasePackage
 
                     if ($dbContact) {
                         $this->basepackages->contactbook->removeContact($dbContact);
+
+                        if ($dbContact['portrait'] !== '') {
+                            $this->basepackages->storages->changeOrphanStatus(oldUUID : $dbContact['portrait'], status: 1);
+                        }
                     }
                 }
             }
