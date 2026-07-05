@@ -73,6 +73,7 @@ class Companies extends BasePackage
 
             if ($company['logo'] !== '') {
                 $this->basepackages->storages->changeOrphanStatus(newUUID : $company['logo'], status: 0);
+                $this->basepackages->storages->updatePackageInfo($company['logo'], $company['id']);
             }
 
             $this->addResponse('Company added');
@@ -97,6 +98,7 @@ class Companies extends BasePackage
 
             if ($company['logo'] !== '') {
                 $this->basepackages->storages->changeOrphanStatus(newUUID : $company['logo'], status: 0);
+                $this->basepackages->storages->updatePackageInfo($company['logo'], $company['id']);
             }
 
             $this->addResponse('Company updated');
